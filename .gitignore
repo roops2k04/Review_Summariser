@@ -1,0 +1,30 @@
+# 🔐 Secrets
+.env
+
+# 🐍 Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 📦 Virtual Environment
+.venv/
+venv/
+env/
+
+# 🧠 ChromaDB (vector DB data)
+.chroma_db/
+*.sqlite3
+
+# ⚙️ Streamlit cache
+.streamlit/
+
+# 🧪 Misc
+*.log
+.DS_Store
+
+# 🧾 VS Code
+.vscode/
+
+# 🔥 OS files
+Thumbs.db
