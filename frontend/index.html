@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ReviewLens — AI Business Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="noise"></div>
+
+  <div class="page">
+
+    <!-- ── HEADER ── -->
+    <header class="hdr">
+      <div class="hdr-logo">RL</div>
+      <div>
+        <h1 class="hdr-brand">ReviewLens</h1>
+        <p class="hdr-sub">RAG-powered local business intelligence</p>
+      </div>
+    </header>
+
+    <!-- ── STEP 1: SEARCH ── -->
+    <section class="card search-card" id="searchCard">
+      <p class="step-label">Step 1 — Search</p>
+      <h2 class="card-title">Find outlets in your city</h2>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Business / Place</label>
+          <input id="iQuery" type="text" placeholder="Pizza Hut, best cafe, PG…" autocomplete="off"/>
+        </div>
+        <div class="field">
+          <label>City</label>
+          <input id="iLocation" type="text" placeholder="Hyderabad, Chennai…" autocomplete="off"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Your Question <em>(used for AI analysis later)</em></label>
+        <input id="iQuestion" type="text" placeholder="e.g. Is the food quality good? Is it worth visiting?" autocomplete="off"/>
+      </div>
+
+      <button id="searchBtn" class="btn-primary" onclick="doSearch()">
+        <span id="searchTxt">Search Outlets</span>
+        <span class="btn-arr" id="searchArr">→</span>
+        <span class="spin hidden" id="searchSpin"></span>
+      </button>
+    </section>
+
+    <!-- ── ERROR ── -->
+    <div id="errBox" class="err-box hidden"></div>
+
+    <!-- ── STEP 2: OUTLETS LIST ── -->
+    <section id="outletsSection" class="hidden">
+      <div class="section-hdr">
+        <div>
+          <p class="step-label">Step 2 — Select outlet</p>
+          <h2 id="outletsTitle" class="section-title">Outlets found</h2>
+          <p id="outletsSub" class="section-sub"></p>
+        </div>
+        <button class="btn-ghost" onclick="resetToSearch()">← New search</button>
+      </div>
+      <div id="outletsList"></div>
+    </section>
+
+    <!-- ── STEP 3: ANALYSIS RESULTS ── -->
+    <section id="resultsSection" class="hidden">
+
+      <div class="section-hdr">
+        <div>
+          <p class="step-label">Step 3 — Analysis</p>
+          <h2 id="rName" class="section-title"></h2>
+          <p id="rAddress" class="section-sub"></p>
+        </div>
+        <button class="btn-ghost" onclick="backToOutlets()">← Back to outlets</button>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-n" id="sReviews">—</div>
+          <div class="stat-l">Reviews fetched</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-n" id="sChunks">—</div>
+          <div class="stat-l">Chunks indexed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-n" id="sRetrieved">—</div>
+          <div class="stat-l">Chunks used by AI</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-n" id="sGoogleReviews">—</div>
+          <div class="stat-l">Total on Google</div>
+        </div>
+      </div>
+
+      <!-- PROS & CONS -->
+      <div class="pc-grid">
+        <div class="pc-card pros">
+          <div class="pc-head">
+            <div class="dot dot-green"></div>
+            <h3>5 Pros</h3>
+          </div>
+          <ul id="prosList" class="pc-list pros-list"></ul>
+        </div>
+        <div class="pc-card cons">
+          <div class="pc-head">
+            <div class="dot dot-red"></div>
+            <h3>5 Cons</h3>
+          </div>
+          <ul id="consList" class="pc-list cons-list"></ul>
+        </div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div class="summary-card">
+        <p class="summary-label">AI Summary</p>
+        <p id="rSummary"></p>
+      </div>
+
+      <!-- SOURCE EXCERPTS -->
+      <div class="card excerpts-card">
+        <div class="excerpts-hdr">
+          <h3>Source review excerpts</h3>
+          <span id="excerptBadge" class="badge"></span>
+        </div>
+        <p class="hint">Exact chunks retrieved by RAG and fed to the AI</p>
+        <div id="excerptsList"></div>
+      </div>
+
+    </section>
+
+  </div><!-- /page -->
+
+  <!-- ── ANALYSIS LOADING OVERLAY ── -->
+  <div id="loadOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-ring"></div>
+      <p id="loadMsg" class="overlay-msg">Fetching reviews…</p>
+      <div class="overlay-steps">
+        <div id="ls1" class="ls">① Scraping 100+ reviews</div>
+        <div id="ls2" class="ls">② Chunking &amp; embedding</div>
+        <div id="ls3" class="ls">③ RAG retrieval</div>
+        <div id="ls4" class="ls">④ Generating 5 pros &amp; 5 cons</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
