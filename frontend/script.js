@@ -1,7 +1,11 @@
 const API = "";   // same-origin: frontend served by FastAPI
+const HISTORY_KEY = "reviewlens.chatHistory.v1";
+const HISTORY_LIMIT = 30;
 
 let allPlaces   = [];
 let selectedPlace = null;
+let chatHistory = [];
+let activeHistoryId = null;
 
 /* ══════════════════════════════════════════
    STEP 1 — SEARCH
@@ -9,6 +13,7 @@ let selectedPlace = null;
 async function doSearch() {
   const query    = v("iQuery");
   const location = v("iLocation");
+  const question = v("iQuestion");
   if (!query || !location) return showErr("Please enter both a business name and a city.");
 
   setSearchLoading(true);
@@ -20,6 +25,14 @@ async function doSearch() {
     const data = await post("/api/search", { query, location });
     allPlaces = data.places || [];
     if (!allPlaces.length) throw new Error("No outlets found. Try a different search.");
+    activeHistoryId = saveSearchHistory({
+      query,
+      location,
+      question,
+      places: allPlaces,
+      searchTerm: data.search_term,
+    });
+    renderHistory();
     renderOutlets(allPlaces, data.search_term);
   } catch (e) {
     showErr(e.message);
@@ -96,6 +109,13 @@ async function analyzePlace(place) {
     await wait(450);
 
     hideOverlay();
+    saveAnalysisHistory({
+      id: activeHistoryId,
+      question,
+      place,
+      analysis: data,
+    });
+    renderHistory();
     renderResults(data, place);
   } catch (e) {
     hideOverlay();
@@ -139,6 +159,125 @@ function renderResults(d, place) {
 ══════════════════════════════════════════ */
 function backToOutlets()  { hide("resultsSection"); show("outletsSection"); window.scrollTo({top:0,behavior:"smooth"}); }
 function resetToSearch()  { hide("outletsSection"); hide("resultsSection"); clearErr(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+/* ══════════════════════════════════════════
+   CHAT HISTORY
+══════════════════════════════════════════ */
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    chatHistory = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(chatHistory)) chatHistory = [];
+  } catch {
+    chatHistory = [];
+  }
+}
+
+function persistHistory() {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory.slice(0, HISTORY_LIMIT)));
+}
+
+function makeHistoryId() {
+  return `h_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function saveSearchHistory({ query, location, question, places, searchTerm }) {
+  const id = makeHistoryId();
+  const entry = {
+    id,
+    createdAt: Date.now(),
+    query,
+    location,
+    question,
+    searchTerm,
+    places: places || [],
+    selectedPlace: null,
+    analysis: null,
+  };
+
+  chatHistory.unshift(entry);
+  chatHistory = chatHistory.slice(0, HISTORY_LIMIT);
+  persistHistory();
+  return id;
+}
+
+function saveAnalysisHistory({ id, question, place, analysis }) {
+  const idx = chatHistory.findIndex(x => x.id === id);
+  if (idx === -1) return;
+
+  chatHistory[idx].question = question;
+  chatHistory[idx].selectedPlace = place;
+  chatHistory[idx].analysis = analysis;
+  chatHistory[idx].updatedAt = Date.now();
+
+  const [entry] = chatHistory.splice(idx, 1);
+  chatHistory.unshift(entry);
+  persistHistory();
+}
+
+function renderHistory() {
+  const list = id("historyList");
+  if (!list) return;
+
+  list.innerHTML = "";
+  const empty = id("historyEmpty");
+  if (!chatHistory.length) {
+    empty?.classList.remove("hidden");
+    return;
+  }
+  empty?.classList.add("hidden");
+
+  chatHistory.forEach(item => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "history-item" + (item.id === activeHistoryId ? " active" : "");
+
+    const itemTitle = item.analysis?.name || item.query || "Previous search";
+    const timeText = new Date(item.updatedAt || item.createdAt).toLocaleString();
+    const meta = `${item.location || ""} • ${timeText}`;
+
+    btn.innerHTML = `
+      <div class="history-item-q">${esc(itemTitle)}</div>
+      <div class="history-item-m">${esc(meta)}</div>
+    `;
+
+    btn.addEventListener("click", () => restoreHistoryItem(item.id));
+    list.appendChild(btn);
+  });
+}
+
+function restoreHistoryItem(historyId) {
+  const entry = chatHistory.find(x => x.id === historyId);
+  if (!entry) return;
+
+  activeHistoryId = historyId;
+  id("iQuery").value = entry.query || "";
+  id("iLocation").value = entry.location || "";
+  id("iQuestion").value = entry.question || "";
+  allPlaces = entry.places || [];
+
+  clearErr();
+  if (entry.analysis && entry.selectedPlace) {
+    selectedPlace = entry.selectedPlace;
+    renderResults(entry.analysis, entry.selectedPlace);
+  } else if (allPlaces.length) {
+    hide("resultsSection");
+    renderOutlets(allPlaces, entry.searchTerm || `${entry.query} in ${entry.location}`);
+  } else {
+    hide("outletsSection");
+    hide("resultsSection");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  renderHistory();
+}
+
+function clearHistory() {
+  chatHistory = [];
+  activeHistoryId = null;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
 
 /* ══════════════════════════════════════════
    OVERLAY STEPS
@@ -208,7 +347,12 @@ async function post(url, body) {
 
 /* Enter key */
 document.addEventListener("DOMContentLoaded", () => {
+  loadHistory();
+  renderHistory();
+
   ["iQuery","iLocation","iQuestion"].forEach(xid => {
     id(xid)?.addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
   });
+
+  id("clearHistoryBtn")?.addEventListener("click", clearHistory);
 });

@@ -11,7 +11,20 @@
 <body>
   <div class="noise"></div>
 
-  <div class="page">
+  <div class="app-shell">
+    <aside class="history-panel" id="historyPanel">
+      <div class="history-hdr">
+        <div>
+          <p class="step-label">History</p>
+          <h2 class="history-title">Previous chats</h2>
+        </div>
+        <button id="clearHistoryBtn" class="btn-ghost btn-ghost-sm" type="button">Clear</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+      <p id="historyEmpty" class="history-empty">No history yet. Your searches will appear here.</p>
+    </aside>
+
+    <div class="page">
 
     <!-- ── HEADER ── -->
     <header class="hdr">
@@ -134,7 +147,8 @@
 
     </section>
 
-  </div><!-- /page -->
+    </div><!-- /page -->
+  </div><!-- /app-shell -->
 
   <!-- ── ANALYSIS LOADING OVERLAY ── -->
   <div id="loadOverlay" class="overlay hidden">
