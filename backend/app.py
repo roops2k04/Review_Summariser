@@ -20,7 +20,7 @@ load_dotenv()
 from pathlib import Path
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
-app = FastAPI(title="ReviewLens v2")
+app = FastAPI(title="ReviewLens ")
 
 app.add_middleware(
     CORSMiddleware,
@@ -170,5 +170,5 @@ if __name__ == "__main__":
         webbrowser.open("http://localhost:8000")
 
     threading.Thread(target=_open_browser, daemon=True).start()
-    print("\n🚀 ReviewLens starting → http://localhost:8000\n")
+    print("\n ReviewLens starting → http://localhost:8000\n")
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
