@@ -40,17 +40,46 @@ REVIEW EXCERPTS TO ANALYZE:
 """
 
 
-def generate_pros_cons(chunks: list[str], question: str) -> dict:
+def _detect_mode(question: str) -> str:
+    q = (question or "").strip().lower()
+    if not q:
+        return "both"
+
+    asks_pros = any(k in q for k in ["pro", "pros", "advantage", "advantages", "good", "positives"])
+    asks_cons = any(k in q for k in ["con", "cons", "disadvantage", "disadvantages", "bad", "negatives", "drawbacks"])
+
+    if asks_cons and not asks_pros:
+        return "cons_only"
+    if asks_pros and not asks_cons:
+        return "pros_only"
+    return "both"
+
+
+def generate_pros_cons(chunks: list[str], question: str, forced_mode: str | None = None) -> dict:
     client, model = _get_client()
+    mode = forced_mode or _detect_mode(question)
 
     # Use all chunks for maximum context — join with separator
     context = "\n---\n".join(chunks)
     print(f"[llm] sending {len(chunks)} chunks ({len(context)} chars) to LLM")
 
+    if mode == "cons_only":
+        task_instruction = (
+            "Analyze all the review excerpts and return ONLY 5 cons. "
+            "Set pros to an empty array []."
+        )
+    elif mode == "pros_only":
+        task_instruction = (
+            "Analyze all the review excerpts and return ONLY 5 pros. "
+            "Set cons to an empty array []."
+        )
+    else:
+        task_instruction = "Analyze all the review excerpts and return 5 pros and 5 cons."
+
     user_msg = (
-        f"Analyze all the review excerpts provided and extract exactly 5 pros and 5 cons.\n"
+        f"{task_instruction}\n"
         f"User's specific question: {question}\n"
-        f"Remember: return raw JSON only, always include all 5 pros and 5 cons."
+        "Return raw JSON only with keys: pros, cons, summary."
     )
 
     # Try with json_object response format first
@@ -80,16 +109,26 @@ def generate_pros_cons(chunks: list[str], question: str) -> dict:
             pros = result.get("pros", [])
             cons = result.get("cons", [])
 
-            # Pad to exactly 5 if LLM returned fewer
-            while len(pros) < 5:
-                pros.append("Not enough data in reviews")
-            while len(cons) < 5:
-                cons.append("Not enough data in reviews")
+            # Enforce question intent strictly, even if model returns extra fields.
+            if mode == "cons_only":
+                pros = []
+                while len(cons) < 5:
+                    cons.append("Not enough data in reviews")
+            elif mode == "pros_only":
+                cons = []
+                while len(pros) < 5:
+                    pros.append("Not enough data in reviews")
+            else:
+                while len(pros) < 5:
+                    pros.append("Not enough data in reviews")
+                while len(cons) < 5:
+                    cons.append("Not enough data in reviews")
 
             return {
                 "pros":    pros[:5],
                 "cons":    cons[:5],
                 "summary": result.get("summary", ""),
+                "mode":    mode,
             }
 
         except Exception as e:
@@ -100,4 +139,5 @@ def generate_pros_cons(chunks: list[str], question: str) -> dict:
                     "pros":    ["LLM API error — check XAI_API_KEY"] + ["Not available"] * 4,
                     "cons":    [str(e)[:80]] + ["Not available"] * 4,
                     "summary": f"Could not generate AI analysis. Error: {e}",
+                    "mode":    mode,
                 }

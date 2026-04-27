@@ -1,4 +1,5 @@
 import os
+import re
 import threading
 import webbrowser
 from fastapi import FastAPI, HTTPException
@@ -11,6 +12,7 @@ from rag.scraper import search_places, fetch_reviews_for_place
 from rag.processor import process_reviews
 from rag.retriever import index_and_retrieve
 from rag.llm import generate_pros_cons
+from rag.intent_agent import detect_intent
 # REPLACE this:
 load_dotenv()
 
@@ -43,14 +45,44 @@ class AnalyzeRequest(BaseModel):
     question: str
 
 
+def _normalize_text(value: str) -> str:
+    value = (value or "").lower()
+    value = re.sub(r"[^a-z0-9\s]", " ", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _is_place_in_location(place: dict, location: str) -> bool:
+    """Strict filter: every significant location token must appear in place metadata."""
+    loc = _normalize_text(location)
+    if not loc:
+        return True
+
+    tokens = [t for t in loc.split(" ") if len(t) >= 3]
+    if not tokens:
+        tokens = loc.split(" ")
+
+    searchable = _normalize_text(
+        " ".join(
+            [
+                str(place.get("name", "")),
+                str(place.get("address", "")),
+                str(place.get("snippet", "")),
+            ]
+        )
+    )
+
+    return all(token in searchable for token in tokens)
+
+
 # ── ENDPOINT 1: Search outlets ──────────────────────────────────────────
 @app.post("/api/search")
 async def search_endpoint(req: SearchRequest):
     try:
         term   = f"{req.query} in {req.location}"
         places = search_places(term)
+        places = [p for p in places if _is_place_in_location(p, req.location)]
         if not places:
-            raise HTTPException(404, "No outlets found. Try a different search term.")
+            raise HTTPException(404, f"No outlets found in {req.location}.")
         return {"places": places, "search_term": term}
     except HTTPException:
         raise
@@ -86,17 +118,18 @@ async def analyze_endpoint(req: AnalyzeRequest):
         if not chunks:
             raise HTTPException(404, "Could not extract meaningful content from reviews.")
 
-        # STEP 3: RAG — embed, store, retrieve
+        # STEP 3: Intent agent decides mode + retrieval depth
         question = req.question or f"What are the pros and cons of {req.name}?"
-        # Retrieve more chunks (30) to give LLM better context
-        relevant = index_and_retrieve(chunks, question, top_k=30)
+        intent = detect_intent(question)
+        top_k = int(intent.get("top_k", 30))
+        relevant = index_and_retrieve(chunks, question, top_k=top_k)
         print(f"[app] relevant chunks retrieved: {len(relevant)}")
 
         # Use all relevant chunks; fall back to first 30 raw chunks
         llm_input = relevant if relevant else chunks[:30]
 
         # STEP 4: Generate 5 pros + 5 cons
-        result = generate_pros_cons(llm_input, question)
+        result = generate_pros_cons(llm_input, question, forced_mode=intent.get("mode"))
 
         return {
             "name":             req.name,
@@ -104,6 +137,9 @@ async def analyze_endpoint(req: AnalyzeRequest):
             "total_reviews":    len(raw_reviews),
             "total_chunks":     len(chunks),
             "chunks_retrieved": len(relevant),
+            "question_used":    question,
+            "analysis_mode":    result.get("mode", "both"),
+            "intent":           intent,
             "pros":             result.get("pros", []),
             "cons":             result.get("cons", []),
             "summary":          result.get("summary", ""),

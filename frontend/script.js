@@ -53,9 +53,8 @@ function renderOutlets(places, term) {
     card.className = "outlet-card fade-up";
     card.style.animationDelay = `${i * 55}ms`;
 
-    const rcLabel = p.review_count
-      ? `${Number(p.review_count).toLocaleString()}<small>Google reviews</small>`
-      : `N/A<small>Google reviews</small>`;
+    const rcNum = Number(p.review_count ?? 0);
+    const rcLabel = `${(Number.isFinite(rcNum) ? rcNum : 0).toLocaleString()}<small>Google reviews</small>`;
 
     const rating = p.rating
       ? `<div class="rating-line"><span class="star">★</span> ${p.rating}</div>`
@@ -116,19 +115,32 @@ async function analyzePlace(place) {
       analysis: data,
     });
     renderHistory();
-    renderResults(data, place);
+    renderResults(data, place, question);
   } catch (e) {
     hideOverlay();
     showErr(e.message);
   }
 }
 
-function renderResults(d, place) {
+function detectQuestionMode(question) {
+  const q = String(question || "").toLowerCase();
+  if (!q) return "both";
+
+  const asksPros = /(\bpros?\b|\badvantages?\b|\bpositive\b|\bgood\b)/i.test(q);
+  const asksCons = /(\bcons?\b|\bdisadvantages?\b|\bnegative\b|\bbad\b|\bdrawbacks?\b)/i.test(q);
+
+  if (asksCons && !asksPros) return "cons_only";
+  if (asksPros && !asksCons) return "pros_only";
+  return "both";
+}
+
+function renderResults(d, place, question) {
   id("rName").textContent    = d.name;
   id("rAddress").textContent = d.address;
 
-  /* stats — 4 boxes */
-  id("sReviews").textContent       = fmt(d.total_reviews);
+  const mode = d.analysis_mode || detectQuestionMode(question || d.question_used || "");
+
+  /* stats — 3 boxes */
   id("sChunks").textContent        = fmt(d.total_chunks);
   id("sRetrieved").textContent     = fmt(d.chunks_retrieved);
   id("sGoogleReviews").textContent = place.review_count ? Number(place.review_count).toLocaleString() : "N/A";
@@ -140,6 +152,17 @@ function renderResults(d, place) {
   /* cons */
   const cons = (d.cons || []).slice(0, 5);
   id("consList").innerHTML = cons.map(c => `<li>${esc(c)}</li>`).join("");
+
+  if (mode === "cons_only") {
+    hide("prosCard");
+    show("consCard");
+  } else if (mode === "pros_only") {
+    show("prosCard");
+    hide("consCard");
+  } else {
+    show("prosCard");
+    show("consCard");
+  }
 
   /* summary */
   id("rSummary").textContent = d.summary || "—";
@@ -259,7 +282,7 @@ function restoreHistoryItem(historyId) {
   clearErr();
   if (entry.analysis && entry.selectedPlace) {
     selectedPlace = entry.selectedPlace;
-    renderResults(entry.analysis, entry.selectedPlace);
+    renderResults(entry.analysis, entry.selectedPlace, entry.question);
   } else if (allPlaces.length) {
     hide("resultsSection");
     renderOutlets(allPlaces, entry.searchTerm || `${entry.query} in ${entry.location}`);
@@ -282,7 +305,7 @@ function clearHistory() {
 /* ══════════════════════════════════════════
    OVERLAY STEPS
 ══════════════════════════════════════════ */
-const stepMsgs = ["Scraping 100+ reviews…","Chunking & embedding…","RAG retrieval…","Generating 5 pros & 5 cons…"];
+const stepMsgs = ["Scraping 100+ reviews…","Chunking & embedding…","RAG retrieval…","Generating analysis…"];
 function showOverlay() {
   document.querySelectorAll(".ls").forEach(el => el.classList.remove("active","done"));
   id("loadMsg").textContent = stepMsgs[0];

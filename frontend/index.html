@@ -52,8 +52,8 @@
       </div>
 
       <div class="field">
-        <label>Your Question <em>(used for AI analysis later)</em></label>
-        <input id="iQuestion" type="text" placeholder="e.g. Is the food quality good? Is it worth visiting?" autocomplete="off"/>
+        <label>Your Question <em>(ask only pros, only cons, or both)</em></label>
+        <input id="iQuestion" type="text" placeholder="e.g. only cons about service, or pros and cons about food quality" autocomplete="off"/>
       </div>
 
       <button id="searchBtn" class="btn-primary" onclick="doSearch()">
@@ -94,10 +94,6 @@
       <!-- STATS -->
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-n" id="sReviews">—</div>
-          <div class="stat-l">Reviews fetched</div>
-        </div>
-        <div class="stat-card">
           <div class="stat-n" id="sChunks">—</div>
           <div class="stat-l">Chunks indexed</div>
         </div>
@@ -113,14 +109,14 @@
 
       <!-- PROS & CONS -->
       <div class="pc-grid">
-        <div class="pc-card pros">
+        <div class="pc-card pros" id="prosCard">
           <div class="pc-head">
             <div class="dot dot-green"></div>
             <h3>5 Pros</h3>
           </div>
           <ul id="prosList" class="pc-list pros-list"></ul>
         </div>
-        <div class="pc-card cons">
+        <div class="pc-card cons" id="consCard">
           <div class="pc-head">
             <div class="dot dot-red"></div>
             <h3>5 Cons</h3>
@@ -159,7 +155,7 @@
         <div id="ls1" class="ls">① Scraping 100+ reviews</div>
         <div id="ls2" class="ls">② Chunking &amp; embedding</div>
         <div id="ls3" class="ls">③ RAG retrieval</div>
-        <div id="ls4" class="ls">④ Generating 5 pros &amp; 5 cons</div>
+        <div id="ls4" class="ls">④ Generating analysis</div>
       </div>
     </div>
   </div>
