@@ -25,9 +25,8 @@ YOUR TASK: Extract exactly 5 PROS and 5 CONS from the review excerpts provided.
 STRICT RULES:
 1. Use ONLY information from the review excerpts below — no outside knowledge
 2. Each pro/con must be a specific, concrete point (not vague like "good food")
-3. If the reviews contain fewer than 5 clear pros or cons, fill remaining slots with "Not enough data in reviews"
-4. You MUST always return all 5 pros and all 5 cons — never fewer
-5. Return ONLY a raw JSON object — no markdown, no explanation, no extra text
+3. You MUST always return all 5 pros and all 5 cons — never fewer
+4. Return ONLY a raw JSON object — no markdown, no explanation, no extra text
 
 REQUIRED FORMAT (raw JSON only):
 {

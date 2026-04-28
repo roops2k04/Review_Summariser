@@ -7,9 +7,7 @@ let selectedPlace = null;
 let chatHistory = [];
 let activeHistoryId = null;
 
-/* ══════════════════════════════════════════
-   STEP 1 — SEARCH
-══════════════════════════════════════════ */
+/* STEP 1 — SEARCH */
 async function doSearch() {
   const query    = v("iQuery");
   const location = v("iLocation");
@@ -80,9 +78,7 @@ function renderOutlets(places, term) {
   scrollTo(0, id("outletsSection").offsetTop - 20, "smooth");
 }
 
-/* ══════════════════════════════════════════
-   STEP 2 — ANALYZE SELECTED OUTLET
-══════════════════════════════════════════ */
+/* STEP 2 — ANALYZE SELECTED OUTLET */
 async function analyzePlace(place) {
   selectedPlace = place;
   const question = v("iQuestion") || `What are the pros and cons of ${place.name}?`;
@@ -177,15 +173,11 @@ function renderResults(d, place, question) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-/* ══════════════════════════════════════════
-   NAV HELPERS
-══════════════════════════════════════════ */
+/* NAV HELPERS */
 function backToOutlets()  { hide("resultsSection"); show("outletsSection"); window.scrollTo({top:0,behavior:"smooth"}); }
 function resetToSearch()  { hide("outletsSection"); hide("resultsSection"); clearErr(); window.scrollTo({top:0,behavior:"smooth"}); }
 
-/* ══════════════════════════════════════════
-   CHAT HISTORY
-══════════════════════════════════════════ */
+/* CHAT HISTORY */
 function loadHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
@@ -302,9 +294,7 @@ function clearHistory() {
   renderHistory();
 }
 
-/* ══════════════════════════════════════════
-   OVERLAY STEPS
-══════════════════════════════════════════ */
+/* OVERLAY STEPS */
 const stepMsgs = ["Scraping 100+ reviews…","Chunking & embedding…","RAG retrieval…","Generating analysis…"];
 function showOverlay() {
   document.querySelectorAll(".ls").forEach(el => el.classList.remove("active","done"));
@@ -321,9 +311,7 @@ function step(n, msg) {
   });
 }
 
-/* ══════════════════════════════════════════
-   LOADING STATE FOR SEARCH BUTTON
-══════════════════════════════════════════ */
+/* LOADING STATE FOR SEARCH BUTTON */
 function setSearchLoading(on) {
   id("searchBtn").disabled = on;
   id("searchTxt").textContent = on ? "Searching…" : "Search Outlets";
@@ -331,9 +319,7 @@ function setSearchLoading(on) {
   id("searchSpin").classList.toggle("hidden", !on);
 }
 
-/* ══════════════════════════════════════════
-   ERROR
-══════════════════════════════════════════ */
+/* ERROR */
 function showErr(msg) {
   const el = id("errBox");
   el.textContent = "⚠  " + msg;
@@ -342,9 +328,7 @@ function showErr(msg) {
 }
 function clearErr() { id("errBox").classList.add("hidden"); }
 
-/* ══════════════════════════════════════════
-   UTILS
-══════════════════════════════════════════ */
+/* UTILS */
 function id(x)    { return document.getElementById(x); }
 function v(x)     { return (id(x)?.value || "").trim(); }
 function show(x)  { id(x)?.classList.remove("hidden"); }

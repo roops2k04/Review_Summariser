@@ -125,7 +125,7 @@ def _fetch_review_count_by_cid(cid: str, headers: dict) -> int:
 
 
 def search_places(search_term: str) -> list[dict]:
-    """Search for multiple outlets. Returns up to 10 places with review counts."""
+    
     api_key = os.getenv("SERPER_API_KEY")
     if not api_key:
         raise ValueError("SERPER_API_KEY is not set in backend/.env")
